@@ -6,7 +6,7 @@ Release: %mkrel 3
 Source0: %{name}-%{version}.tar.gz
 Patch10: pykickstart-1.77-post-packages.patch
 License: GPLv2
-Group: System Environment/Libraries
+Group: System/Libraries
 BuildArch: noarch
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildRequires: python-devel, gettext, python-setuptools
