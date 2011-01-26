@@ -1,16 +1,10 @@
-%{!?python_sitelib: %global python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib()")}
-
 Summary:  A python library for manipulating kickstart files
 Name: pykickstart
 Url: http://fedoraproject.org/wiki/pykickstart
 Version: 1.77
-Release: 3%{?dist}
-# This is a Red Hat maintained package which is specific to
-# our distribution.  Thus the source is only available from
-# within this srpm.
+Release: %mkrel 3
 Source0: %{name}-%{version}.tar.gz
 Patch10: pykickstart-1.77-post-packages.patch
-
 License: GPLv2
 Group: System Environment/Libraries
 BuildArch: noarch
