@@ -2,7 +2,7 @@ Summary:  A python library for manipulating kickstart files
 Name: pykickstart
 Url: http://fedoraproject.org/wiki/pykickstart
 Version: 1.77
-Release: %mkrel 3
+Release: %mkrel 4
 Source0: %{name}-%{version}.tar.gz
 Patch10: pykickstart-1.77-post-packages.patch
 License: GPLv2
