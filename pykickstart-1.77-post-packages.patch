@@ -1,0 +1,228 @@
+diff -ur pykickstart-1.77.orig/pykickstart/base.py pykickstart-1.77/pykickstart/base.py
+--- pykickstart-1.77.orig/pykickstart/base.py	2010-07-20 18:02:21.000000000 +0400
++++ pykickstart-1.77/pykickstart/base.py	2010-12-27 13:16:39.000000000 +0300
+@@ -45,7 +45,7 @@
+ import warnings
+ from pykickstart.errors import *
+ from pykickstart.ko import *
+-from pykickstart.parser import Packages
++from pykickstart.parser import Packages, PackagesPost
+ from pykickstart.version import versionToString
+ 
+ ###
+@@ -253,6 +253,7 @@
+         # everything else I can think of.
+         self.scripts = []
+         self.packages = Packages()
++        self.packages_post = PackagesPost()
+         self.platform = ""
+ 
+         # These will be set by the dispatcher.
+diff -ur pykickstart-1.77.orig/pykickstart/parser.py pykickstart-1.77/pykickstart/parser.py
+--- pykickstart-1.77.orig/pykickstart/parser.py	2010-07-20 18:02:21.000000000 +0400
++++ pykickstart-1.77/pykickstart/parser.py	2010-12-27 15:03:15.000000000 +0300
+@@ -55,6 +55,7 @@
+ STATE_PACKAGES = 2
+ STATE_SCRIPT_HDR = 3
+ STATE_SCRIPT = 4
++STATE_PACKAGES_POST = 5
+ 
+ # FIXME:  This is a hack until I have time to think about making the parser
+ # itself support multiple syntax versions.  Yes, I know this means it will
+@@ -400,6 +401,98 @@
+         self.packageList = list(existingPackageSet)
+         self.excludedList = list(existingExcludedSet)
+ 
++class PackagesPost(KickstartObject):
++    """A class representing the %post_packages section of the kickstart file."""
++    def __init__(self, *args, **kwargs):
++        """Create a new PackagesPost instance.  Instance attributes:
++
++           addBase       -- Should the Base group be installed even if it is
++                            not specified?
++           default       -- Should the default package set be selected?
++           excludedList  -- A list of all the packages marked for exclusion in
++                            the %packages section, without the leading minus
++                            symbol.
++           excludeDocs   -- Should documentation in each package be excluded?
++           handleMissing -- If unknown packages are specified in the %packages
++                            section, should it be ignored or not?  Values can
++                            be KS_MISSING_* from pykickstart.constants.
++           packageList   -- A list of all the packages specified in the
++                            %packages section.
++           instLangs     -- A list of languages to install.
++        """
++        KickstartObject.__init__(self, *args, **kwargs)
++
++        self.addBase = True
++        self.default = False
++        self.excludedList = []
++        self.excludeDocs = False
++        self.handleMissing = KS_MISSING_PROMPT
++        self.packageList = []
++        self.instLangs = None
++
++    def __str__(self):
++        """Return a string formatted for output to a kickstart file."""
++        pkgs = ""
++
++        if not self.default:
++            p = self.packageList
++            p.sort()
++            for pkg in p:
++                pkgs += "%s\n" % pkg
++
++            p = self.excludedList
++            p.sort()
++            for pkg in p:
++                pkgs += "-%s\n" % pkg
++
++            if pkgs == "":
++                return ""
++
++        if self.preceededInclude is not None:
++            retval = "\n%%include %s\n" % self.preceededInclude
++        else:
++            retval = ""
++
++        retval += "\n%post_packages"
++
++        if self.default:
++            retval += " --default"
++        if self.excludeDocs:
++            retval += " --excludedocs"
++        if not self.addBase:
++            retval += " --nobase"
++        if self.handleMissing == KS_MISSING_IGNORE:
++            retval += " --ignoremissing"
++        if self.instLangs:
++            retval += " --instLangs=%s" % self.instLangs
++
++        if ver >= F8:
++            return retval + "\n" + pkgs + "\n%end\n"
++        else:
++            return retval + "\n" + pkgs + "\n"
++
++    def add (self, pkgList):
++        """Given a list of lines from the input file, strip off any leading
++           symbols and add the result to the appropriate list.
++        """
++        existingExcludedSet = set(self.excludedList)
++        existingPackageSet = set(self.packageList)
++        newExcludedSet = set()
++        newPackageSet = set()
++
++        for pkg in pkgList:
++            stripped = pkg.strip()
++
++            if stripped[0] == "-":
++                newExcludedSet.add(stripped[1:])
++            else:
++                newPackageSet.add(stripped)
++
++        existingPackageSet = (existingPackageSet - newExcludedSet) | newPackageSet
++        existingExcludedSet = (existingExcludedSet - existingPackageSet) | newExcludedSet
++
++        self.packageList = list(existingPackageSet)
++        self.excludedList = list(existingExcludedSet)
+ 
+ ###
+ ### PARSER
+@@ -482,6 +575,14 @@
+         if self.handler:
+             self.handler.packages.add([line])
+ 
++    def addPackagesPost (self, line):
++        """Add the single package, exclude, or group into the Version's
++           Packages instance.  This method may be overridden in a subclass
++           if necessary.
++        """
++        if self.handler:
++            self.handler.packages_post.add([line])
++
+     def handleCommand (self, lineno, args):
+         """Given the list of command and arguments, call the Version's
+            dispatcher method to handle the command.  Returns the command or
+@@ -567,6 +668,7 @@
+         # For error reporting.
+         lineno = 0
+         needLine = True
++        postPackages = False
+ 
+         while True:
+             if needLine:
+@@ -602,7 +704,7 @@
+                 # to split.  Otherwise, args won't be set but we'll fall through
+                 # all the way to the last case.
+                 if self._line != "" and string.split(self._line.lstrip())[0] in \
+-                   ["%end", "%post", "%pre", "%traceback", "%include", "%packages", "%ksappend"]:
++                   ["%end", "%post", "%pre", "%traceback", "%include", "%packages", "%post_packages", "%ksappend"]:
+                     args = shlex.split(self._line)
+                 else:
+                     args = None
+@@ -652,6 +754,8 @@
+                     self._state = STATE_SCRIPT_HDR
+                 elif args[0] == "%packages":
+                     self._state = STATE_PACKAGES
++                elif args[0] == "%post_packages":
++                    self._state = STATE_PACKAGES_POST
+                 elif args[0][0] == '%':
+                     # This error is too difficult to continue from, without
+                     # lots of resync code.  So just print this one and quit.
+@@ -668,6 +772,7 @@
+                             print msg
+ 
+             elif self._state == STATE_PACKAGES:
++                postPackages = False
+                 if not args and self._includeDepth == 0:
+                     if self.version >= F8:
+                         raise KickstartParseError, formatErrorMsg(lineno, msg=_("Section does not end with %%end."))
+@@ -690,6 +795,7 @@
+                             self.handlePackageHdr (lineno, args)
+                         except Exception, msg:
+                             print msg
++
+                 elif args[0][0] == '%':
+                     # This error is too difficult to continue from, without
+                     # lots of resync code.  So just print this one and quit.
+@@ -698,6 +804,31 @@
+                     needLine = True
+                     self.addPackages (string.rstrip(self._line))
+ 
++            elif self._state == STATE_PACKAGES_POST:
++                postPackages = False
++                if not args and self._includeDepth == 0:
++                    if self.version >= F8:
++                        raise KickstartParseError, formatErrorMsg(lineno, msg=_("Section does not end with %%end."))
++
++                    self._state = STATE_END
++                elif args[0] == "%end":
++                    self._state = STATE_COMMANDS
++                    needLine = True
++                elif args[0] == "%ksappend":
++                    needLine = True
++                elif args[0] in ["%pre", "%post", "%traceback"]:
++                    self._state = STATE_SCRIPT_HDR
++                elif args[0] == "%post_packages":
++                    needLine = True
++
++                elif args[0][0] == '%':
++                    # This error is too difficult to continue from, without
++                    # lots of resync code.  So just print this one and quit.
++                    raise KickstartParseError, formatErrorMsg(lineno)
++                else:
++                    needLine = True
++                    self.addPackagesPost (string.rstrip(self._line))
++
+             elif self._state == STATE_SCRIPT_HDR:
+                 needLine = True
+                 self._script = {"body": [], "interp": "/bin/sh", "log": None,
+@@ -735,7 +866,7 @@
+                     # If we're at the end of the kickstart file, add the script.
+                     self.addScript()
+                     self._state = STATE_END
+-                elif args and args[0] in ["%end", "%pre", "%post", "%traceback", "%packages", "%ksappend"]:
++                elif args and args[0] in ["%end", "%pre", "%post", "%traceback", "%packages", "%post_packages", "%ksappend"]:
+                     # Otherwise we're now at the start of the next section.
+                     # Figure out what kind of a script we just finished
+                     # reading, add it to the list, and switch to the initial
