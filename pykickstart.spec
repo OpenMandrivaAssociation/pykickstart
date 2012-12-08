@@ -1,12 +1,17 @@
+%{!?python_sitelib: %global python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib()")}
+
 Summary:  A python library for manipulating kickstart files
 Name: pykickstart
 Url: http://fedoraproject.org/wiki/pykickstart
-Version: 1.77
-Release: %mkrel 4
+Version: 1.99.15
+Release: 2
+# This is a Red Hat maintained package which is specific to
+# our distribution.  Thus the source is only available from
+# within this srpm.
 Source0: %{name}-%{version}.tar.gz
-Patch10: pykickstart-1.77-post-packages.patch
+
 License: GPLv2
-Group: System/Libraries
+Group: System Environment/Libraries
 BuildArch: noarch
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildRequires: python-devel, gettext, python-setuptools
@@ -18,7 +23,6 @@ files.
 
 %prep
 %setup -q
-%patch10 -p1
 
 %build
 make
@@ -40,3 +44,6 @@ rm -rf %{buildroot}
 %{_bindir}/ksflatten
 %{_bindir}/ksverdiff
 
+%changelog
+* Thu Aug 09 2012 Chris Lumens <clumens@redhat.com> - 1.99.15-1
+- No argument needs to be given to rootpw if you're just locking the account. (clumens)
