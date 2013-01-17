@@ -11,7 +11,7 @@ Release: 2
 Source0: %{name}-%{version}.tar.gz
 
 License: GPLv2
-Group: System Environment/Libraries
+Group: Development/Python
 BuildArch: noarch
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildRequires: python-devel, gettext, python-setuptools
