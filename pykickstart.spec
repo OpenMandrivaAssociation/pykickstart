@@ -3,7 +3,7 @@
 Summary:	A python library for manipulating kickstart files
 Name:		pykickstart
 Version:	1.99.15
-Release:	4
+Release:	5
 License:	GPLv2
 Group:		Development/Python
 # This is a Red Hat maintained package which is specific to
