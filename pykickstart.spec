@@ -3,7 +3,7 @@
 Summary:	A python library for manipulating kickstart files
 Name:		pykickstart
 Version:	1.99.15
-Release:	8
+Release:	9
 License:	GPLv2
 Group:		Development/Python
 # This is a Red Hat maintained package which is specific to
@@ -14,8 +14,8 @@ Source0:	%{name}-%{version}.tar.gz
 BuildArch:	noarch
 BuildRequires:	gettext
 BuildRequires:	python-setuptools
-BuildRequires:	pkgconfig(python)
-Requires:	python
+BuildRequires:	pkgconfig(python2)
+Requires:	python2
 Requires:	python-urlgrabber
 
 %description
@@ -35,7 +35,7 @@ make DESTDIR=%{buildroot} install
 %files -f %{name}.lang
 %doc README ChangeLog COPYING docs/programmers-guide
 %doc docs/kickstart-docs.txt
-%{python_sitelib}/*
+%{python2_sitelib}/*
 %{_bindir}/ksvalidator
 %{_bindir}/ksflatten
 %{_bindir}/ksverdiff
