@@ -26,6 +26,9 @@ files.
 %setup -q
 
 %build
+sed -i -e 's/python/python2/g' Makefile
+sed -i -e 's#/usr/bin/python#/usr/bin/python2#g' tools/
+
 make
 
 %install
