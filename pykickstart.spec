@@ -9,7 +9,7 @@ Group:		Development/Python
 # This is a Red Hat maintained package which is specific to
 # our distribution.  Thus the source is only available from
 # within this srpm.
-Url:		http://fedoraproject.org/wiki/pykickstart
+Url:		https://fedoraproject.org/wiki/pykickstart
 Source0:	%{name}-%{version}.tar.gz
 BuildArch:	noarch
 BuildRequires:	gettext
