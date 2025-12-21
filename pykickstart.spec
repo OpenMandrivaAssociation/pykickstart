@@ -12,6 +12,7 @@ Group:		Development/Python
 Url:		https://fedoraproject.org/wiki/pykickstart
 Source0:	%{name}-%{version}.tar.gz
 BuildArch:	noarch
+BuildRequires:	make
 BuildRequires:	gettext
 BuildRequires:	python-setuptools
 BuildRequires:	pkgconfig(python2)
